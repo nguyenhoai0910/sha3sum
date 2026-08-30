@@ -1,0 +1,42 @@
+# --- PyInstaller build artifacts ---
+build/
+dist/
+*.spec
+
+# --- Python bytecode / cache ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+ENV/
+
+# --- Packaging / distribution ---
+*.egg-info/
+.eggs/
+*.egg
+
+# --- Environment / secrets ---
+.env
+
+# --- Editor / OS junk ---
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# --- Test / coverage output ---
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Log files ---
+*.log
+
+# --- Local test files (optional: uncomment if you test-hash sample files here) ---
+# *.mp4
+# *.iso
+# test_files/
