@@ -106,8 +106,10 @@ jobs:
           path: artifacts/windows
 
       # Đổi tên file cho rõ ràng
-      - name: Rename artifacts
+      - name: Prepare artifacts
         run: |
+          mv artifacts/linux/sha3sum        artifacts/sha3sum
+          mv artifacts/windows/sha3sum.exe  artifacts/sha3sum.exe
           chmod +x artifacts/sha3sum
 
       - name: Create Release
