@@ -5,6 +5,11 @@ import argparse
 from colorama import init, Fore
 init(autoreset=True)
 
+# Được inject bởi GitHub Actions lúc build
+__version__ = "dev"
+__commit__  = "unknown"
+__build__   = "local"
+
 def hash_file(file_path, algo, chunk_size=65536):
     h = hashlib.new(algo)
     with open(file_path, "rb") as f:
@@ -14,11 +19,22 @@ def hash_file(file_path, algo, chunk_size=65536):
 
 def main():
     parser = argparse.ArgumentParser(description="Compute SHA3/BLAKE2 hash of a file")
-    parser.add_argument("file", help="Path to file")
+    parser.add_argument("file", nargs="?", help="Path to file")
     parser.add_argument("-a", "--algo", default="sha3_256",
                          choices=["sha3_256", "sha3_512", "blake2b", "blake2s"])
     parser.add_argument("-c", "--compare", help="Hash string to compare against")
+    parser.add_argument("-v", "--version", action="store_true", help="Show version info")
     args = parser.parse_args()
+
+    if args.version:
+        print(f"sha3sum {__version__}")
+        print(f"commit : {__commit__}")
+        print(f"build  : {__build__}")
+        sys.exit(0)
+
+    if not args.file:
+        parser.print_help()
+        sys.exit(1)
 
     computed = hash_file(args.file, args.algo)
 

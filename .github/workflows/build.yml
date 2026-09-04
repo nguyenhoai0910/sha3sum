@@ -1,22 +1,17 @@
 name: Build Binaries
 
-# Trigger: push lên main hoặc tạo tag release
 on:
   push:
     branches: [main]
     tags:
-      - "v*"        # v1.0, v1.2.3, ...
+      - "v*"
   pull_request:
     branches: [main]
 
 jobs:
-  # ──────────────────────────────────────────
-  # JOB 1: Build trên Ubuntu → Linux binary
-  # ──────────────────────────────────────────
   build-linux:
     name: Build Linux Binary
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,32 +22,34 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
+        run: pip install colorama pyinstaller
+
+      - name: Inject version info
         run: |
-          pip install colorama pyinstaller
+          VERSION=${GITHUB_REF_NAME:-dev}
+          COMMIT=${GITHUB_SHA::7}
+          BUILD=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          sed -i "s/__version__ = \"dev\"/__version__ = \"$VERSION\"/" sha3sum.py
+          sed -i "s/__commit__  = \"unknown\"/__commit__  = \"$COMMIT\"/" sha3sum.py
+          sed -i "s/__build__   = \"local\"/__build__   = \"$BUILD\"/" sha3sum.py
 
       - name: Build binary
-        run: |
-          python -m PyInstaller --onefile --clean --hidden-import colorama sha3sum.py
+        run: python -m PyInstaller --onefile --clean --hidden-import colorama sha3sum.py
 
       - name: Verify binary
         run: |
           file dist/sha3sum
-          ./dist/sha3sum --help
+          ./dist/sha3sum --version
 
-      # Lưu artifact để download hoặc dùng ở job release
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: sha3sum-linux
           path: dist/sha3sum
 
-  # ──────────────────────────────────────────
-  # JOB 2: Build trên Windows → .exe
-  # ──────────────────────────────────────────
   build-windows:
     name: Build Windows EXE
     runs-on: windows-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -63,16 +60,23 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
+        run: pip install colorama pyinstaller
+
+      - name: Inject version info
+        shell: bash
         run: |
-          pip install colorama pyinstaller
+          VERSION=${GITHUB_REF_NAME:-dev}
+          COMMIT=${GITHUB_SHA::7}
+          BUILD=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          sed -i "s/__version__ = \"dev\"/__version__ = \"$VERSION\"/" sha3sum.py
+          sed -i "s/__commit__  = \"unknown\"/__commit__  = \"$COMMIT\"/" sha3sum.py
+          sed -i "s/__build__   = \"local\"/__build__   = \"$BUILD\"/" sha3sum.py
 
       - name: Build EXE
-        run: |
-          python -m PyInstaller --onefile --clean --hidden-import colorama sha3sum.py
+        run: python -m PyInstaller --onefile --clean --hidden-import colorama sha3sum.py
 
       - name: Verify EXE
-        run: |
-          .\dist\sha3sum.exe --help
+        run: .\dist\sha3sum.exe --version
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -80,17 +84,13 @@ jobs:
           name: sha3sum-windows
           path: dist/sha3sum.exe
 
-  # ──────────────────────────────────────────
-  # JOB 3: Tạo GitHub Release (chỉ khi push tag)
-  # ──────────────────────────────────────────
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-linux, build-windows]   # chờ cả 2 job build xong
-    if: startsWith(github.ref, 'refs/tags/v')  # chỉ chạy khi có tag v*
-
+    needs: [build-linux, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions:
-      contents: write   # cần quyền để tạo release
+      contents: write
 
     steps:
       - name: Download Linux artifact
@@ -105,12 +105,18 @@ jobs:
           name: sha3sum-windows
           path: artifacts/windows
 
-      # Đổi tên file cho rõ ràng
       - name: Prepare artifacts
         run: |
-          mv artifacts/linux/sha3sum        artifacts/sha3sum
-          mv artifacts/windows/sha3sum.exe  artifacts/sha3sum.exe
+          mv artifacts/linux/sha3sum       artifacts/sha3sum
+          mv artifacts/windows/sha3sum.exe artifacts/sha3sum.exe
           chmod +x artifacts/sha3sum
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum sha3sum       > sha256sums.txt
+          sha256sum sha3sum.exe  >> sha256sums.txt
+          cat sha256sums.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -125,6 +131,15 @@ jobs:
             |----------|------|-------------------------|
             | Linux (x64) | `sha3sum` | `sha3sum-linux-amd64` |
             | Windows (x64) | `sha3sum.exe` | `sha3sum-windows-amd64` |
+
+            ### Verify
+            ```bash
+            # Kiểm tra version + commit SHA
+            ./sha3sum --version
+
+            # Verify file download bằng sha256sums.txt
+            sha256sum -c sha256sums.txt
+            ```
 
             ### Usage
             ```bash
@@ -141,5 +156,6 @@ jobs:
           files: |
             artifacts/sha3sum
             artifacts/sha3sum.exe
+            artifacts/sha256sums.txt
           draft: false
           prerelease: false
