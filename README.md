@@ -287,3 +287,12 @@ Nếu lệnh trên chạy được nhưng build `.exe` vẫn báo thiếu `color
 
 - **Lỗi font tiếng Việt trong PowerShell:** do encoding console mặc định không phải UTF-8. Có thể khắc phục bằng `chcp 65001` hoặc dùng Windows Terminal / PowerShell 7 thay vì console cũ.
 - **Màu trong Python:** `print()` mặc định không có màu. Dùng ANSI escape codes trực tiếp (`\033[92m` xanh, `\033[91m` đỏ, `\033[0m` reset) hoặc thư viện `colorama` (khuyên dùng vì tương thích tốt hơn trên các phiên bản Windows console cũ).
+
+## 8. Windows SmartScreen Warning
+
+File chưa được ký certificate do chi phí cao.
+Nếu bị cảnh báo: Click "More info" → "Run anyway"
+
+Bạn có thể tự build từ source:
+    pip install pyinstaller colorama
+    python -m PyInstaller --onefile sha3sum.py
