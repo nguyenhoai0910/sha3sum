@@ -108,9 +108,7 @@ jobs:
       # Đổi tên file cho rõ ràng
       - name: Rename artifacts
         run: |
-          mv artifacts/linux/sha3sum   artifacts/sha3sum-linux-amd64
-          mv artifacts/windows/sha3sum.exe artifacts/sha3sum-windows-amd64.exe
-          chmod +x artifacts/sha3sum-linux-amd64
+          chmod +x artifacts/sha3sum
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -121,25 +119,25 @@ jobs:
             ## sha3sum ${{ github.ref_name }}
 
             ### Download
-            | Platform | File |
-            |----------|------|
-            | Linux (x64) | `sha3sum-linux-amd64` |
-            | Windows (x64) | `sha3sum-windows-amd64.exe` |
+            | Platform | File |NOTE|
+            |----------|------|-------------------------|
+            | Linux (x64) | `sha3sum` | `sha3sum-linux-amd64` |
+            | Windows (x64) | `sha3sum.exe` | `sha3sum-windows-amd64` |
 
             ### Usage
             ```bash
             # Linux
-            chmod +x sha3sum-linux-amd64
-            ./sha3sum-linux-amd64 file.iso
-            ./sha3sum-linux-amd64 file.iso -a sha3_512
-            ./sha3sum-linux-amd64 file.iso -a blake2b -c "abc123..."
+            chmod +x sha3sum
+            ./sha3sum file.iso
+            ./sha3sum file.iso -a sha3_512
+            ./sha3sum file.iso -a blake2b -c "abc123..."
 
             # Windows
-            sha3sum-windows-amd64.exe file.iso
-            sha3sum-windows-amd64.exe file.iso -a sha3_512
+            sha3sum.exe file.iso
+            sha3sum.exe file.iso -a sha3_512
             ```
           files: |
-            artifacts/sha3sum-linux-amd64
-            artifacts/sha3sum-windows-amd64.exe
+            artifacts/sha3sum
+            artifacts/sha3sum.exe
           draft: false
           prerelease: false
