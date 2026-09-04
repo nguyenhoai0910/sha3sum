@@ -111,13 +111,6 @@ jobs:
           mv artifacts/windows/sha3sum.exe artifacts/sha3sum.exe
           chmod +x artifacts/sha3sum
 
-      - name: Generate checksums
-        run: |
-          cd artifacts
-          sha256sum sha3sum       > sha256sums.txt
-          sha256sum sha3sum.exe  >> sha256sums.txt
-          cat sha256sums.txt
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -134,11 +127,8 @@ jobs:
 
             ### Verify
             ```bash
-            # Kiểm tra version + commit SHA
+            # Check version + commit SHA
             ./sha3sum --version
-
-            # Verify file download bằng sha256sums.txt
-            sha256sum -c sha256sums.txt
             ```
 
             ### Usage
@@ -156,6 +146,5 @@ jobs:
           files: |
             artifacts/sha3sum
             artifacts/sha3sum.exe
-            artifacts/sha256sums.txt
           draft: false
           prerelease: false
