@@ -1,0 +1,145 @@
+name: Build Binaries
+
+# Trigger: push lên main hoặc tạo tag release
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*"        # v1.0, v1.2.3, ...
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ──────────────────────────────────────────
+  # JOB 1: Build trên Ubuntu → Linux binary
+  # ──────────────────────────────────────────
+  build-linux:
+    name: Build Linux Binary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install colorama pyinstaller
+
+      - name: Build binary
+        run: |
+          python -m PyInstaller --onefile --clean --hidden-import colorama sha3sum.py
+
+      - name: Verify binary
+        run: |
+          file dist/sha3sum
+          ./dist/sha3sum --help
+
+      # Lưu artifact để download hoặc dùng ở job release
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sha3sum-linux
+          path: dist/sha3sum
+
+  # ──────────────────────────────────────────
+  # JOB 2: Build trên Windows → .exe
+  # ──────────────────────────────────────────
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install colorama pyinstaller
+
+      - name: Build EXE
+        run: |
+          python -m PyInstaller --onefile --clean --hidden-import colorama sha3sum.py
+
+      - name: Verify EXE
+        run: |
+          .\dist\sha3sum.exe --help
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sha3sum-windows
+          path: dist/sha3sum.exe
+
+  # ──────────────────────────────────────────
+  # JOB 3: Tạo GitHub Release (chỉ khi push tag)
+  # ──────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-windows]   # chờ cả 2 job build xong
+    if: startsWith(github.ref, 'refs/tags/v')  # chỉ chạy khi có tag v*
+
+    permissions:
+      contents: write   # cần quyền để tạo release
+
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sha3sum-linux
+          path: artifacts/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sha3sum-windows
+          path: artifacts/windows
+
+      # Đổi tên file cho rõ ràng
+      - name: Rename artifacts
+        run: |
+          mv artifacts/linux/sha3sum   artifacts/sha3sum-linux-amd64
+          mv artifacts/windows/sha3sum.exe artifacts/sha3sum-windows-amd64.exe
+          chmod +x artifacts/sha3sum-linux-amd64
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          body: |
+            ## sha3sum ${{ github.ref_name }}
+
+            ### Download
+            | Platform | File |
+            |----------|------|
+            | Linux (x64) | `sha3sum-linux-amd64` |
+            | Windows (x64) | `sha3sum-windows-amd64.exe` |
+
+            ### Usage
+            ```bash
+            # Linux
+            chmod +x sha3sum-linux-amd64
+            ./sha3sum-linux-amd64 file.iso
+            ./sha3sum-linux-amd64 file.iso -a sha3_512
+            ./sha3sum-linux-amd64 file.iso -a blake2b -c "abc123..."
+
+            # Windows
+            sha3sum-windows-amd64.exe file.iso
+            sha3sum-windows-amd64.exe file.iso -a sha3_512
+            ```
+          files: |
+            artifacts/sha3sum-linux-amd64
+            artifacts/sha3sum-windows-amd64.exe
+          draft: false
+          prerelease: false
